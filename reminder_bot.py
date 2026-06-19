@@ -234,11 +234,20 @@ def check_annual_reports(cat_data: dict, all_categories: dict) -> list[dict]:
 
 
 def check_person_terms(cat_data: dict, category_label: str) -> list[dict]:
-    """Build reminder messages for EB/SAB/other person term renewals."""
-    messages = []
+    """
+    Build reminder messages for EB/SAB/other person term renewals.
+    Members expiring on the same date are grouped into a single message.
+    Members with item-level what_to_do overrides always get their own message.
+    """
     term_years = cat_data.get("term_years", 2)
     remind_days = cat_data.get("remind_before_days", [60])
     what_to_do_template = cat_data.get("what_to_do_template", "")
+
+    # Collect all members that are within the alert window
+    # group_key: expiry date (for grouping), or None if item has custom what_to_do
+    from collections import defaultdict
+    grouped: dict[date, list[dict]] = defaultdict(list)   # expiry_date → [member info]
+    individual: list[dict] = []                            # members needing their own message
 
     for item in cat_data.get("items", []):
         name = item["name"]
@@ -252,24 +261,80 @@ def check_person_terms(cat_data: dict, category_label: str) -> list[dict]:
         expiry = term_expiry(start_str, renewal_str, term_years)
         d_until = days_until(expiry)
 
-        if any(d_until <= r for r in remind_days) and d_until >= 0:
-            emoji = urgency_emoji(d_until)
-            display_name = f"{name} ({role})" if role else name
-            effective_from = renewal_str or start_str
+        if not (any(d_until <= r for r in remind_days) and d_until >= 0):
+            continue
 
-            # Build what_to_do from template or item-level override
-            what_to_do = item.get("what_to_do") or what_to_do_template.replace("{name}", name)
+        entry = {
+            "name": name,
+            "role": role,
+            "expiry": expiry,
+            "d_until": d_until,
+            "effective_from": renewal_str or start_str,
+            "what_to_do_override": item.get("what_to_do", ""),
+        }
 
-            blocks = [
-                header_block(f"{emoji} {category_label} Term Expiring: {display_name}"),
-                section_block(
-                    f"*Term expires:* {format_date(expiry)} — *{d_until} days away*\n"
-                    f"_2-year term from {effective_from}_"
-                ),
-            ]
-            if what_to_do:
-                blocks.append(section_block(f"*What needs to be done:*\n{what_to_do.strip()}"))
-            messages.append(blocks)
+        if entry["what_to_do_override"]:
+            individual.append(entry)
+        else:
+            grouped[expiry].append(entry)
+
+    messages = []
+
+    # One message per expiry-date group
+    for expiry, members in sorted(grouped.items()):
+        d_until = members[0]["d_until"]  # same for all in group
+        emoji = urgency_emoji(d_until)
+
+        if len(members) == 1:
+            m = members[0]
+            display_name = f"{m['name']} ({m['role']})" if m["role"] else m["name"]
+            title = f"{emoji} {category_label} Term Expiring: {display_name}"
+            detail = (
+                f"*Term expires:* {format_date(expiry)} — *{d_until} days away*\n"
+                f"_2-year term from {m['effective_from']}_"
+            )
+        else:
+            names_str = ", ".join(
+                f"{m['name']} ({m['role']})" if m["role"] else m["name"]
+                for m in members
+            )
+            title = f"{emoji} {category_label} Terms Expiring: {len(members)} members"
+            detail = (
+                f"*Term expires:* {format_date(expiry)} — *{d_until} days away*\n"
+                f"*Members:* {names_str}"
+            )
+
+        blocks = [
+            header_block(title),
+            section_block(detail),
+        ]
+
+        # Use template what_to_do, substituting {name} with a list when grouped
+        if what_to_do_template:
+            if len(members) == 1:
+                what_to_do = what_to_do_template.replace("{name}", members[0]["name"])
+            else:
+                names_list = "\n".join(f"  - {m['name']}" for m in members)
+                what_to_do = what_to_do_template.replace(
+                    "{name}", f"each of the following members:\n{names_list}\n "
+                )
+            blocks.append(section_block(f"*What needs to be done:*\n{what_to_do.strip()}"))
+
+        messages.append(blocks)
+
+    # Individual messages for members with custom what_to_do
+    for m in individual:
+        emoji = urgency_emoji(m["d_until"])
+        display_name = f"{m['name']} ({m['role']})" if m["role"] else m["name"]
+        blocks = [
+            header_block(f"{emoji} {category_label} Term Expiring: {display_name}"),
+            section_block(
+                f"*Term expires:* {format_date(m['expiry'])} — *{m['d_until']} days away*\n"
+                f"_2-year term from {m['effective_from']}_"
+            ),
+            section_block(f"*What needs to be done:*\n{m['what_to_do_override'].strip()}"),
+        ]
+        messages.append(blocks)
 
     return messages
 
