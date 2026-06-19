@@ -1,0 +1,38 @@
+name: Weekly Reminders
+
+on:
+  schedule:
+    # Every Monday at 08:00 UTC
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+    # Allows manual trigger from the GitHub Actions UI
+    # Optionally pass DRY_RUN=true to test without posting to Slack
+    inputs:
+      dry_run:
+        description: "Dry run (print to console, don't post to Slack)"
+        required: false
+        default: "false"
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pyyaml requests python-dateutil
+
+      - name: Run reminder bot
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          REMINDERS_YAML: reminders.yaml
+          LOOKAHEAD_DAYS: "90"
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        run: python reminder_bot.py

@@ -1,0 +1,201 @@
+# Pathoplexus Reminders Configuration
+# =====================================
+# HOW TO USE THIS FILE:
+#
+# Each category has a list of items. The bot runs weekly and posts to Slack
+# for anything coming up within the alert window.
+#
+# ADDING A NEW FUNDER: Copy an existing entry under funding_reports > items
+#   and update name, deadlines, recurrence, remind_before_days, and what_to_do.
+#
+# ADDING A NEW CATEGORY: Add a new top-level key under categories. If you
+#   don't have time to write custom formatting, the bot will use a sensible
+#   default message. Optional fields: label, description, items.
+#
+# TERM RENEWALS (EB/SAB): When someone is re-elected, add a renewal_date
+#   field with the new start date. The bot uses renewal_date over start_date
+#   if present.
+#
+# DATE FORMAT: YYYY-MM-DD throughout.
+
+categories:
+
+  # ---------------------------------------------------------------------------
+  # FUNDING REPORTS
+  # ---------------------------------------------------------------------------
+  funding_reports:
+    label: "Funding Reports"
+    description: >
+      Funder progress reports. Each funder may have its own schedule and
+      submission requirements.
+    items:
+
+      - name: "Balvi"
+        description: >
+          Balvi progress report. Required every 6 months, due end-January
+          and end-July each year. Auto-calculated from the anchor dates below.
+        # anchor_deadlines: the bot uses these as the fixed points in each year
+        # and auto-calculates recurrence. Format: MM-DD
+        annual_deadline_dates:
+          - "01-31"
+          - "07-31"
+        remind_before_days: [30, 14, 7]
+        what_to_do: |
+          - Write up progress report covering activities since last report
+          - Include financial summary / burn rate
+          - Submit via Balvi's reporting portal before deadline
+          - Notify EB once submitted
+
+  # ---------------------------------------------------------------------------
+  # ANNUAL GA
+  # ---------------------------------------------------------------------------
+  annual_ga:
+    label: "Annual General Assembly"
+    description: >
+      The GA must be held annually by end of April. It approves the previous
+      year's report and budget, discharges the EB, treasurer, and auditors,
+      and presents the budget for the upcoming year. The EB must have approved
+      the budget before the GA takes place.
+    items:
+
+      - name: "Annual GA"
+        # Target deadline: end of April each year
+        annual_deadline_date: "04-30"
+        remind_before_days: [60, 30]
+        # The GA has internal sub-deadlines that are auto-calculated relative
+        # to the GA date. Negative = before the GA date.
+        sub_deadlines:
+          - offset_days: -14
+            label: "Draft agenda circulated to members"
+            what_to_do: |
+              - Prepare draft agenda and circulate to all members
+              - Include: approval of previous year's report & budget,
+                discharge of EB/treasurer/auditors, upcoming year budget,
+                any other business
+          - offset_days: -12
+            label: "Members' deadline to submit additional agenda points"
+            what_to_do: |
+              - Members may communicate additional agenda points by this date
+              - Collect any submissions and decide whether to include
+          - offset_days: -10
+            label: "Final agenda circulated to members"
+            what_to_do: |
+              - Incorporate any approved additions from members
+              - Send final agenda to all members
+        what_to_do: |
+          - Confirm GA date and send save-the-date to all members
+          - Ensure EB has approved current-year budget prior to GA
+          - Ensure annual report and financial report are approved (see Annual Reports)
+          - Run GA: approve previous year report & budget, discharge EB/treasurer/auditors
+          - Present upcoming year budget
+          - Record minutes
+
+  # ---------------------------------------------------------------------------
+  # ANNUAL REPORTS
+  # ---------------------------------------------------------------------------
+  annual_reports:
+    label: "Annual Reports"
+    description: >
+      Annual financial and end-of-year reports must be approved before the GA.
+      Financial report requires auditor sign-off; both reports require EB approval.
+      EB should also use this meeting to approve the current-year budget.
+    items:
+
+      - name: "Annual Report & Financial Report"
+        # Deadline is derived from the GA date: reports must be ready before GA.
+        # We treat the GA deadline (Apr 30) minus offset as this item's reminder target.
+        relative_to: "annual_ga/Annual GA"
+        offset_days: -30   # must be done at least 1 month before GA
+        remind_before_days: [90, 60]   # i.e. ~3 and ~2 months before GA
+        what_to_do: |
+          - Prepare end-of-year narrative report
+          - Prepare financial report (treasurer)
+          - Submit financial report to auditors for approval
+          - Once auditor-approved, present both reports to EB for approval
+          - EB to also approve current-year budget at same meeting
+          - Ensure all documents ready before GA date
+
+  # ---------------------------------------------------------------------------
+  # EB TERMS
+  # ---------------------------------------------------------------------------
+  eb_terms:
+    label: "Executive Board Terms"
+    description: >
+      EB members serve 2-year terms from their start date (or renewal date if
+      re-elected). Re-election requires a GA vote. Update renewal_date when
+      someone is re-elected.
+    term_years: 2
+    remind_before_days: [60]
+    what_to_do_template: |
+      - Contact {name} to confirm whether they wish to stand for re-election
+      - If yes: add re-election to the next GA agenda
+      - If no: begin process to identify and nominate a replacement
+      - Once re-elected, update renewal_date in reminders.yaml
+    items:
+
+      - name: "Emma Hodcroft"
+        start_date: "2024-08-12"
+        # renewal_date: "YYYY-MM-DD"   # uncomment and set when re-elected
+
+      - name: "Anderson Brito"
+        start_date: "2024-08-12"
+
+      - name: "George Githinji"
+        start_date: "2024-08-12"
+
+      - name: "Senjuti Saha"
+        start_date: "2025-11-20"
+
+      - name: "Allison Black"
+        start_date: "2024-08-12"
+
+  # ---------------------------------------------------------------------------
+  # SAB TERMS
+  # ---------------------------------------------------------------------------
+  sab_terms:
+    label: "Scientific Advisory Board Terms"
+    description: >
+      SAB members serve 2-year terms from their start date (or renewal date).
+      Re-election is by EB vote (not GA). Members should also refresh their COI
+      declarations at renewal.
+    term_years: 2
+    remind_before_days: [30]
+    what_to_do_template: |
+      - Contact {name} to confirm whether they wish to continue on the SAB
+      - If yes: EB votes to re-elect at next EB meeting; request updated COI declaration
+      - If no: begin process to identify a replacement
+      - Once re-elected, update renewal_date in reminders.yaml
+    items:
+
+      - name: "Pardis Sabeti"
+        start_date: "2024-08-12"
+
+      - name: "Meera Chand"
+        start_date: "2024-10-22"
+
+      - name: "Mang Shi"
+        start_date: "2024-08-12"
+
+      - name: "Sofonias Tessema"
+        start_date: "2024-08-12"
+
+  # ---------------------------------------------------------------------------
+  # OTHER ROLES
+  # ---------------------------------------------------------------------------
+  other_roles:
+    label: "Other Elected Roles"
+    description: >
+      Other named roles with fixed terms. Re-election mechanism specified per item.
+    term_years: 2
+    remind_before_days: [60]
+    items:
+
+      - name: "Chaoran Chen"
+        role: "Treasurer"
+        start_date: "2024-11-25"
+        elected_by: "GA"
+        what_to_do: |
+          - Contact Chaoran Chen to confirm whether they wish to stand for re-election as Treasurer
+          - If yes: add re-election of Treasurer to next GA agenda
+          - If no: identify and nominate replacement ahead of GA
+          - Once re-elected, update renewal_date in reminders.yaml
