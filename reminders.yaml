@@ -199,3 +199,23 @@ categories:
           - If yes: add re-election of Treasurer to next GA agenda
           - If no: identify and nominate replacement ahead of GA
           - Once re-elected, update renewal_date in reminders.yaml
+          
+      - name: "Nawaal Weitz"
+        role: "Auditor"
+        start_date: "2024-08-12"
+        elected_by: "GA"
+        what_to_do: |
+          - Contact Nawaal Weitz to confirm whether they wish to stand for re-election as Treasurer
+          - If yes: add re-election of Auditor to next GA agenda
+          - If no: identify and nominate replacement ahead of GA
+          - Once re-elected, update renewal_date in reminders.yaml
+
+      - name: "Michael Bridger"
+        role: "Auditor"
+        start_date: "2024-08-12"
+        elected_by: "GA"
+        what_to_do: |
+          - Contact Michael Bridger to confirm whether they wish to stand for re-election as Treasurer
+          - If yes: add re-election of Auditor to next GA agenda
+          - If no: identify and nominate replacement ahead of GA
+          - Once re-elected, update renewal_date in reminders.yaml
